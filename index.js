@@ -8,7 +8,7 @@ const client = new Client({
     ] 
 });
 
-// معرفات الرتب التي سيتم منشنها
+// ضع هنا معرفات الرتب الخاصة بك
 const supportRoles = ['1520054944034455713', '1520044608216891402', '1520057770395828305'];
 
 client.on('ready', () => {
@@ -16,9 +16,10 @@ client.on('ready', () => {
     client.user.setActivity('Void | Support System', { type: 'WATCHING' });
 });
 
-// الأمر الخاص بإرسال رسالة فتح التكت
+// الأمر الأساسي لتهيئة التكت
 client.on('messageCreate', async (message) => {
     if (message.content === '!ticket-setup') {
+        // تأكد من وجود ملف void-banner.png في مجلد المشروع
         const banner = new AttachmentBuilder('./void-banner.png');
         
         const embed = new EmbedBuilder()
@@ -40,11 +41,11 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// نظام التفاعل (الأزرار)
+// نظام الأزرار والتفاعل
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isButton()) return;
 
-    // فتح التذكرة
+    // فتح تذكرة جديدة
     if (interaction.customId === 'open_ticket') {
         const channel = await interaction.guild.channels.create({
             name: `ticket-${interaction.user.username}`,
@@ -62,7 +63,12 @@ client.on('interactionCreate', async (interaction) => {
 
         await channel.send({
             content: `${supportRoles.map(r => `<@&${r}>`).join(' ')} - ${interaction.user} فتح تذكرة جديدة.`,
-            embeds: [new EmbedBuilder().setTitle('Void Support').setDescription('يرجى شرح مشكلتك وسيقوم فريق الدعم بالرد عليك قريباً.').setColor('#000000')],
+            embeds: [
+                new EmbedBuilder()
+                    .setTitle('Void Support')
+                    .setDescription('يرجى شرح مشكلتك، وسيقوم فريق الدعم بالرد عليك قريباً.')
+                    .setColor('#000000')
+            ],
             components: [controlRow]
         });
 
@@ -71,11 +77,11 @@ client.on('interactionCreate', async (interaction) => {
 
     // إغلاق التذكرة
     if (interaction.customId === 'close_ticket') {
-        interaction.reply('🔒 سيتم حذف التذكرة خلال 5 ثوانٍ...');
+        await interaction.reply('🔒 سيتم حذف التذكرة خلال 5 ثوانٍ...');
         setTimeout(() => interaction.channel.delete(), 5000);
     }
 
-    // استدعاء الدعم
+    // استدعاء الدعم (منشن جديد)
     if (interaction.customId === 'call_support') {
         interaction.reply({ content: `🔔 تم استدعاء فريق الدعم: ${supportRoles.map(r => `<@&${r}>`).join(' ')}` });
     }

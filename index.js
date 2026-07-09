@@ -1,89 +1,67 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField, AttachmentBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
 
 const client = new Client({ 
-    intents: [
-        GatewayIntentBits.Guilds, 
-        GatewayIntentBits.MessageContent, 
-        GatewayIntentBits.GuildMessages
-    ] 
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessages] 
 });
 
-// ضع هنا معرفات الرتب الخاصة بك
 const supportRoles = ['1520054944034455713', '1520044608216891402', '1520057770395828305'];
 
 client.on('ready', () => {
-    console.log(`[VOID SUPPORT] البوت يعمل الآن: ${client.user.tag}`);
-    client.user.setActivity('Void | Support System', { type: 'WATCHING' });
+    console.log(`[VOID] البوت يعمل: ${client.user.tag}`);
 });
 
-// الأمر الأساسي لتهيئة التكت
+// أمر !ticket-setup
 client.on('messageCreate', async (message) => {
     if (message.content === '!ticket-setup') {
-        // تأكد من وجود ملف void-banner.png في مجلد المشروع
-        const banner = new AttachmentBuilder('./void-banner.png');
-        
         const embed = new EmbedBuilder()
-            .setTitle('🌌 | Void Support Center')
-            .setDescription('استكشف، تحدث، وتواصل معنا.\nاضغط على الزر أدناه لفتح تذكرة خاصة بك.')
-            .setImage('attachment://void-banner.png')
-            .setColor('#000000')
-            .setFooter({ text: 'Void Server | Official Support' });
+            .setTitle('🌌 VOID | مركز الدعم الفني')
+            .setDescription('أهلاً بك في سيرفر VOID.\nاضغط على الزر أدناه لفتح تذكرة خاصة بك وسيقوم فريقنا بالرد عليك في أقرب وقت.')
+            .setColor('#2C2F33')
+            .setFooter({ text: 'Void Support System • Powered by Space' });
 
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId('open_ticket')
-                .setLabel('فتح تذكرة')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('📩')
+            new ButtonBuilder().setCustomId('open_ticket').setLabel('فتح تذكرة جديدة').setStyle(ButtonStyle.Primary).setEmoji('📩')
         );
 
-        await message.channel.send({ embeds: [embed], components: [row], files: [banner] });
+        await message.channel.send({ embeds: [embed], components: [row] });
     }
 });
 
-// نظام الأزرار والتفاعل
-client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isButton()) return;
+// نظام الأزرار
+client.on('interactionCreate', async (i) => {
+    if (!i.isButton()) return;
 
-    // فتح تذكرة جديدة
-    if (interaction.customId === 'open_ticket') {
-        const channel = await interaction.guild.channels.create({
-            name: `ticket-${interaction.user.username}`,
+    if (i.customId === 'open_ticket') {
+        const channel = await i.guild.channels.create({
+            name: `ticket-${i.user.username}`,
             permissionOverwrites: [
-                { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-                { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
+                { id: i.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+                { id: i.user.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] },
                 ...supportRoles.map(r => ({ id: r, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages] }))
             ]
         });
 
-        const controlRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('close_ticket').setLabel('إغلاق التذكرة').setStyle(ButtonStyle.Danger).setEmoji('🔒'),
-            new ButtonBuilder().setCustomId('call_support').setLabel('استدعاء الدعم').setStyle(ButtonStyle.Primary).setEmoji('🔔')
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('close_ticket').setLabel('إغلاق').setStyle(ButtonStyle.Danger).setEmoji('🔒'),
+            new ButtonBuilder().setCustomId('call_support').setLabel('استدعاء الدعم').setStyle(ButtonStyle.Secondary).setEmoji('🔔')
         );
 
         await channel.send({
-            content: `${supportRoles.map(r => `<@&${r}>`).join(' ')} - ${interaction.user} فتح تذكرة جديدة.`,
-            embeds: [
-                new EmbedBuilder()
-                    .setTitle('Void Support')
-                    .setDescription('يرجى شرح مشكلتك، وسيقوم فريق الدعم بالرد عليك قريباً.')
-                    .setColor('#000000')
-            ],
-            components: [controlRow]
+            content: `${supportRoles.map(r => `<@&${r}>`).join(' ')} - تذكرة جديدة من: ${i.user}`,
+            embeds: [new EmbedBuilder().setTitle('📩 | تذكرة جديدة').setDescription('يرجى كتابة مشكلتك هنا بوضوح.').setColor('#0099FF')],
+            components: [row]
         });
 
-        interaction.reply({ content: `✅ تم فتح تذكرتك بنجاح: ${channel}`, ephemeral: true });
+        i.reply({ content: `✅ تم فتح التذكرة: ${channel}`, ephemeral: true });
     }
 
-    // إغلاق التذكرة
-    if (interaction.customId === 'close_ticket') {
-        await interaction.reply('🔒 سيتم حذف التذكرة خلال 5 ثوانٍ...');
-        setTimeout(() => interaction.channel.delete(), 5000);
+    if (i.customId === 'close_ticket') {
+        await i.reply('🔒 سيتم إغلاق التذكرة خلال 5 ثوانٍ...');
+        setTimeout(() => i.channel.delete(), 5000);
     }
 
-    // استدعاء الدعم (منشن جديد)
-    if (interaction.customId === 'call_support') {
-        interaction.reply({ content: `🔔 تم استدعاء فريق الدعم: ${supportRoles.map(r => `<@&${r}>`).join(' ')}` });
+    if (i.customId === 'call_support') {
+        await i.reply({ content: `🔔 تم استدعاء فريق الدعم: ${supportRoles.map(r => `<@&${r}>`).join(' ')}` });
     }
 });
 

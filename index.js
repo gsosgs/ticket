@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
+const fs = require('fs');
 
 const client = new Client({ 
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessages] 
@@ -7,14 +8,25 @@ const client = new Client({
 const supportRoles = ['1520054944034455713', '1520057770395828305', '1520044608216891402'];
 const ticketEmoji = '<a:AcC_ticket:1524572003523362906>';
 
+// دالة لجلب الرقم التصاعدي
+function getNextTicketNumber() {
+    let data = { lastNumber: 0 };
+    if (fs.existsSync('./tickets.json')) {
+        data = JSON.parse(fs.readFileSync('./tickets.json', 'utf8'));
+    }
+    data.lastNumber += 1;
+    fs.writeFileSync('./tickets.json', JSON.stringify(data));
+    return data.lastNumber;
+}
+
 client.on('ready', () => { console.log(`[VOID] البوت يعمل: ${client.user.tag}`); });
 
-// 1. أمر التهيئة (اكتب !ticket-setup في أي قناة)
+// 1. أمر التهيئة
 client.on('messageCreate', async (message) => {
     if (message.content === '!ticket-setup') {
         const embed = new EmbedBuilder()
             .setTitle('🌌 | VOID Support Center')
-            .setDescription('مرحباً بك في مركز دعم VOID.\nاضغط الزر أدناه لفتح تذكرة خاصة بك.')
+            .setDescription('مرحباً بك في مركز دعم VOID.\nاضغط الزر أدناه لفتح تذكرة.')
             .setColor('#000000');
 
         const row = new ActionRowBuilder().addComponents(
@@ -24,13 +36,13 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// 2. نظام التفاعل (الأزرار)
+// 2. نظام التفاعل
 client.on('interactionCreate', async (i) => {
     if (!i.isButton()) return;
 
     // فتح التذكرة
     if (i.customId === 'open_ticket') {
-        const ticketNum = Math.floor(1000 + Math.random() * 9000);
+        const ticketNum = getNextTicketNumber();
         const channel = await i.guild.channels.create({
             name: `ticket-${ticketNum}`,
             permissionOverwrites: [
@@ -56,7 +68,7 @@ client.on('interactionCreate', async (i) => {
 
         const mentionString = supportRoles.map(r => `<@&${r}>`).join(' ');
         await channel.send({ content: `${mentionString}`, embeds: [embed], components: [row] });
-        i.reply({ content: `✅ تم فتح التذكرة: ${channel}`, ephemeral: true });
+        i.reply({ content: `✅ تم فتح التذكرة رقم ${ticketNum}`, ephemeral: true });
     }
 
     // زر الاستلام (للمشرفين فقط)
@@ -70,7 +82,7 @@ client.on('interactionCreate', async (i) => {
         await i.update({ embeds: [embed] });
     }
 
-    // زر الإغلاق (للمشرفين والمالك)
+    // زر الإغلاق
     if (i.customId === 'close_btn') {
         await i.reply('🔒 سيتم حذف التذكرة خلال 3 ثوانٍ...');
         setTimeout(() => i.channel.delete(), 3000);

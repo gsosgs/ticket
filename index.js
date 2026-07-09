@@ -9,12 +9,12 @@ const ticketEmoji = '<a:AcC_ticket:1524572003523362906>';
 
 client.on('ready', () => { console.log(`[VOID] البوت يعمل: ${client.user.tag}`); });
 
-// 1. أمر التهيئة
+// 1. أمر التهيئة (اكتب !ticket-setup في أي قناة)
 client.on('messageCreate', async (message) => {
     if (message.content === '!ticket-setup') {
         const embed = new EmbedBuilder()
             .setTitle('🌌 | VOID Support Center')
-            .setDescription('اضغط الزر أدناه لفتح تذكرة.')
+            .setDescription('مرحباً بك في مركز دعم VOID.\nاضغط الزر أدناه لفتح تذكرة خاصة بك.')
             .setColor('#000000');
 
         const row = new ActionRowBuilder().addComponents(
@@ -24,7 +24,7 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// 2. التفاعل بالأزرار
+// 2. نظام التفاعل (الأزرار)
 client.on('interactionCreate', async (i) => {
     if (!i.isButton()) return;
 
@@ -45,11 +45,12 @@ client.on('interactionCreate', async (i) => {
             .addFields(
                 { name: '👤 | مالك التذكرة', value: `<@${i.user.id}>`, inline: false },
                 { name: '🛡️ | مشرف التذاكر', value: 'بانتظار الاستلام...', inline: false },
+                { name: '📅 | تاريخ التذكرة', value: new Date().toLocaleDateString(), inline: true },
                 { name: '🔢 | رقم التذكرة', value: ticketNum.toString(), inline: true }
             );
 
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('claim_btn').setLabel('استلام التذكرة').setStyle(ButtonStyle.Success).setEmoji('💼'),
+            new ButtonBuilder().setCustomId('claim_btn').setLabel('استلام').setStyle(ButtonStyle.Success).setEmoji('💼'),
             new ButtonBuilder().setCustomId('close_btn').setLabel('إغلاق').setStyle(ButtonStyle.Danger).setEmoji('🔒')
         );
 
@@ -58,18 +59,20 @@ client.on('interactionCreate', async (i) => {
         i.reply({ content: `✅ تم فتح التذكرة: ${channel}`, ephemeral: true });
     }
 
-    // زر الاستلام (تحديث الإيمبد فوراً)
+    // زر الاستلام (للمشرفين فقط)
     if (i.customId === 'claim_btn') {
+        const isSupport = i.member.roles.cache.some(r => supportRoles.includes(r.id));
+        if (!isSupport) return i.reply({ content: '❌ أنت لست مشرفاً!', ephemeral: true });
+
         const embed = EmbedBuilder.from(i.message.embeds[0])
             .spliceFields(1, 1, { name: '🛡️ | مشرف التذاكر', value: `${ticketEmoji} <@${i.user.id}>`, inline: false });
         
-        await i.update({ embeds: [embed], components: [] }); // حذف الأزرار بعد الاستلام
-        await i.channel.send(`تم استلام التذكرة بواسطة ${i.user} ${ticketEmoji}`);
+        await i.update({ embeds: [embed] });
     }
 
-    // زر الإغلاق
+    // زر الإغلاق (للمشرفين والمالك)
     if (i.customId === 'close_btn') {
-        await i.reply('🔒 سيتم حذف القناة...');
+        await i.reply('🔒 سيتم حذف التذكرة خلال 3 ثوانٍ...');
         setTimeout(() => i.channel.delete(), 3000);
     }
 });
